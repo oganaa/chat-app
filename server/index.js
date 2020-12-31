@@ -4,6 +4,9 @@ const http = require('http');
 const socketIO = require('socket.io');
 
 const publicPath = path.join(__dirname, '/../public');
+
+const { createMessage, createLocationMessage } = require('./utils/message');
+
 const port = process.env.PORT || 3000;
 let app = express();
 let server = http.createServer(app);
@@ -12,49 +15,23 @@ app.use(express.static(publicPath));
 
 io.on('connection', (socket) => {
     console.log('a new user just connected')
+    socket.emit("newMessage",
+        createMessage("Admin", "Welcome to the chat app")
+    );
 
-    socket.emit("newMessage", {
-        from: "Admin",
-        text: "Welcome to the chat app",
-        createdAt: new Date().getTime()
-    });
-
-    socket.broadcast.emit("newMessage", {
-        from: "Admin",
-        text: "New user Joined",
-        createdAt: new Date().getTime()
-    });
-    socket.on('createMessage', (message) => {
+    socket.broadcast.emit("newMessage", createMessage("Admin", "New User Join"));
+    socket.on('createMessage', (message, callback) => {
         console.log("createMessage", message);
-        io.emit("newMessage", {
-            from: message.from,
-            text: message.text,
-            createdAt: new Date().getTime()
-        });
-        // socket.broadcast.emit("newMessage", {
-        //     from: message.from,
-        //     text: message.text,
-        //     createdAt: new Date().getTime()
-        // });
+        io.emit("newMessage", createMessage(message.from, message.text));
+        callback("This is the server")
     })
-
+    socket.on('createLocationMessage', (coords) => {
+        io.emit("newLocationMessage", createLocationMessage('User', coords.lat, coords.lng));
+    })
     socket.on('disconnect', function() {
         console.log('user disconnected')
     });
 });
-
-
-// const getVisitors = () => {
-//     let clients = io.sockets.clients().connected;
-//     let sockets = Object.values(clients);
-//     let users = sockets.map(s => s.user)
-//     return users;
-// }
-// const emitVisitors = () => {
-//     io.emit("visitors", getVisitors());
-// }
-
-
 
 server.listen(port, () => {
     console.log(`listening on ${port}`);
