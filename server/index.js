@@ -1,15 +1,48 @@
 const path = require('path');
 const express = require('express');
-const publicPath = path.join(__dirname, '/../public');
-var app = express();
-app.use(express.static(publicPath));
-// var http = require('http').createServer(app);
-// var io = require('socket.io')(http);
+const http = require('http');
+const socketIO = require('socket.io');
 
-const port = 3000;
-// app.get('/', (req, res) => {
-//     res.sendFile(__dirname + '/index.html');
-// });
+const publicPath = path.join(__dirname, '/../public');
+const port = process.env.PORT || 3000;
+let app = express();
+let server = http.createServer(app);
+let io = socketIO(server);
+app.use(express.static(publicPath));
+
+io.on('connection', (socket) => {
+    console.log('a new user just connected')
+
+    socket.emit("newMessage", {
+        from: "Admin",
+        text: "Welcome to the chat app",
+        createdAt: new Date().getTime()
+    });
+
+    socket.broadcast.emit("newMessage", {
+        from: "Admin",
+        text: "New user Joined",
+        createdAt: new Date().getTime()
+    });
+    socket.on('createMessage', (message) => {
+        console.log("createMessage", message);
+        io.emit("newMessage", {
+            from: message.from,
+            text: message.text,
+            createdAt: new Date().getTime()
+        });
+        // socket.broadcast.emit("newMessage", {
+        //     from: message.from,
+        //     text: message.text,
+        //     createdAt: new Date().getTime()
+        // });
+    })
+
+    socket.on('disconnect', function() {
+        console.log('user disconnected')
+    });
+});
+
 
 // const getVisitors = () => {
 //     let clients = io.sockets.clients().connected;
@@ -21,19 +54,8 @@ const port = 3000;
 //     io.emit("visitors", getVisitors());
 // }
 
-// io.on('connection', (socket) => {
-//     console.log('a user connected')
 
-//     socket.on("new visitor", (user) => {
-//         console.log("shine hereglegch ", user);
-//         socket.user = user;
-//         emitVisitors();
-//     })
-//     socket.on('disconnect', function() {
-//         console.log('user disconnected')
-//     });
-// });
 
-app.listen(port, () => {
+server.listen(port, () => {
     console.log(`listening on ${port}`);
 });
