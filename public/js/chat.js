@@ -1,8 +1,35 @@
 let socket = io();
+
+function scrollToBottom() {
+    let messages = document.querySelector('#messages').lastElementChild;
+    messages.scrollIntoView();
+}
 socket.on('connect', () => {
+    let searchQuery = window.location.search.substring(1);
+    let params = JSON.parse('{"' + decodeURI(searchQuery).replace(/&/g, '","').replace(/\+/g, ' ').replace(/=/g, '":"') + '"}');
     console.log('Connected to server')
+    socket.emit('join', params, function(err) {
+        if (err) {
+            alert(err)
+        } else {
+            console.log('No error')
+        }
+    })
 });
 
+socket.on('updateUsersList', function(users) {
+    console.log(users);
+    let ol = document.createElement('ol');
+    users.forEach(function(user) {
+        let li = document.createElement('li')
+        li.innerHTML = user;
+        ol.appendChild(li);
+    })
+    let userList = document.querySelector('#users');
+    userList.innerHTML = "";
+    userList.appendChild(ol);
+
+})
 
 
 socket.on('disconnect', function() {
@@ -25,6 +52,7 @@ socket.on('newMessage', (message) => {
     const div = document.createElement('div')
     div.innerHTML = html;
     document.querySelector('#messages').append(div);
+    scrollToBottom()
 });
 socket.on('newLocationMessage', (message) => {
     const formattedTime = moment(message.createdAt).format('LT');
@@ -37,18 +65,18 @@ socket.on('newLocationMessage', (message) => {
     const div = document.createElement('div')
     div.innerHTML = html;
     document.querySelector('#messages').append(div);
-    // console.log('newLocationMessage', message);
-    // let li = document.createElement('li');
-    // let a = document.createElement('a');
-    // li.innerHTML = `${message.from}:${formattedTime}`;
-    // a.setAttribute('target', '_blank')
-    // a.setAttribute('href', message.url)
-    // a.innerHTML = `  My current location`
-    // li.appendChild(a)
-    // document.querySelector('body').appendChild(li)
+    scrollToBottom()
+        // console.log('newLocationMessage', message);
+        // let li = document.createElement('li');
+        // let a = document.createElement('a');
+        // li.innerHTML = `${message.from}:${formattedTime}`;
+        // a.setAttribute('target', '_blank')
+        // a.setAttribute('href', message.url)
+        // a.innerHTML = `  My current location`
+        // li.appendChild(a)
+        // document.querySelector('body').appendChild(li)
 });
 socket.emit("createMessage", {
-    from: "ganaa",
     text: "hello message"
 }, function(message) {
     console.log(message, "Server got it")
